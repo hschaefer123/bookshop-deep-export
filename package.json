@@ -2,6 +2,7 @@
   "name": "bookshop-deep-export",
   "version": "1.0.0",
   "description": "A simple CAP project.",
+  "repository": "https://github.com/hschaefer123/bookshop-deep-export",
   "dependencies": {
     "@sap/cds": "^9",
     "@sap/eslint-plugin-ui5-jsdocs": "^2.0.5",
