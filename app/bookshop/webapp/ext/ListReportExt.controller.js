@@ -116,7 +116,6 @@ sap.ui.define([
                  * - non-stream params → query string
                  * - stream param → raw request body
                  */
-                //const url = `/catalog/importJSON(entity='${entitySetName}')`;
                 const url = '/catalog/DataMigration/import';
 
                 const res = await fetch(url, {
@@ -139,8 +138,8 @@ sap.ui.define([
 
                 MessageToast.show(i18n.getText("msgImportDone", [created]));
 
-                // Optional: refresh table binding
                 const oBinding = table.getBinding("rows") || table.getBinding("items");
+                // refresh list binding to show new records
                 oBinding?.refresh?.();
 
             } catch (err) {
