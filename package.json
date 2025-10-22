@@ -1,0 +1,25 @@
+{
+  "name": "bookshop-deep-export",
+  "version": "1.0.0",
+  "description": "A simple CAP project.",
+  "dependencies": {
+    "@sap/cds": "^9",
+    "@sap/eslint-plugin-ui5-jsdocs": "^2.0.5",
+    "@sapui5/ts-types": "^1.92.2",
+    "eslint": "^7.32.0",
+    "express": "^4",
+    "stream-chain": "^3.4.0",
+    "stream-json": "^1.9.1"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^2"
+  },
+  "scripts": {
+    "watch-bookshop": "cds watch --open bookshop/webapp/index.html?sap-ui-xx-viewCache=false",
+    "start": "cds-serve"
+  },
+  "private": true,
+  "sapux": [
+    "app/bookshop"
+  ]
+}

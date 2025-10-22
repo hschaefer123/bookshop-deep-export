@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "target": "es2022",
+        "module": "es2022",
+        "noEmit": true,
+        "checkJs": true,
+        "allowJs": true,
+        "types": [
+            "@sapui5/ts-types"
+        ]
+    }
+}
