@@ -22,16 +22,6 @@ A complete end-to-end **SAP CAP (Node.js 9.4)** example showing:
 
 ---
 
-## 🗂 Project Structure
-
-bookshop-deep-export/
-├── db/schema.cds
-├── srv/catalog-service.cds
-├── srv/catalog-service.js
-├── app/bookshop/webapp/manifest.json
-├── app/bookshop/webapp/ext/ListReportExt.controller.js
-└── README.md
-
 ## 🚀 Getting Started
 
 ### 1️⃣ Install Dependencies
@@ -63,7 +53,7 @@ npm run watch-bookshop
 Each exported object includes its deep composition tree (reviews, authors, …).
 
 ### 🔹 Deep Import
-To be able to import a download Book, please delete 
+To be able to import a download Book, you have to delete it first!
 
 1. Click Import Deep (JSON)
 2. Choose the previously exported file
