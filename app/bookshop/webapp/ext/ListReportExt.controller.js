@@ -70,10 +70,35 @@ sap.ui.define([
                     throw new Error(`Export failed with HTTP ${res.status}`);
                 }
 
-                // Streamed JSON → blob download                
+                const filename = `${entitySet.split('.').pop()}.${format}`;
+
+                // Check if the browser supports streaming download (Chromium only)
+                // @ts-ignore
+                if (res.body && window.showSaveFilePicker) {
+                    // 1️⃣ Ask user where to save the file
+                    // @ts-ignore
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: filename
+                    });
+                    const writable = await handle.createWritable();
+
+                    // 2️⃣ Stream response chunks directly into the file
+                    const reader = res.body.getReader();
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        await writable.write(value);
+                    }
+
+                    await writable.close();
+                    MessageToast.show(i18n.getText("msgExportDone"));
+                    return;
+                }
+
+                // ⚙️ Fallback: if browser doesn't support streaming (Safari, Firefox)
                 const blob = await res.blob();
-                xhr.downloadBlob(blob, `${entitySet}.${format}`);
-                MessageToast.show(i18n.getText("msgExportDone"));
+                xhr.downloadBlob(blob, filename);
+                MessageToast.show(i18n.getText("msgFallbackExportDone"));
             } catch (err) {
                 MessageBox.error(err.message || "Export failed");
             }
