@@ -2,8 +2,9 @@ sap.ui.define([
     "sap/ui/core/mvc/ControllerExtension",
     "sap/m/MessageToast",
     "sap/m/MessageBox",
+    "sap/ui/export/ExportUtils",
     "../util/xhr"
-], function (ControllerExtension, MessageToast, MessageBox, xhr) {
+], function (ControllerExtension, MessageToast, MessageBox, ExportUtils, xhr) {
     "use strict";
 
     /**
@@ -97,7 +98,7 @@ sap.ui.define([
 
                 // ⚙️ Fallback: if browser doesn't support streaming (Safari, Firefox)
                 const blob = await res.blob();
-                xhr.downloadBlob(blob, filename);
+                ExportUtils.saveAsFile(blob, filename)
                 MessageToast.show(i18n.getText("msgFallbackExportDone"));
             } catch (err) {
                 MessageBox.error(err.message || "Export failed");

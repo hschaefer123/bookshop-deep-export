@@ -11,18 +11,6 @@ sap.ui.define([], function () {
         return res.headers.get("x-csrf-token") || "";
     }
 
-    function downloadBlob(blob, filename = "download.json") {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        a.style.display = "none";
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        a.remove();
-    }
-
     function jsonHeaders(token) {
         return {
             "Content-Type": "application/json",
@@ -33,7 +21,6 @@ sap.ui.define([], function () {
     // Return object (export equivalent)
     return {
         getCsrfToken,
-        downloadBlob,
         jsonHeaders
     };
 });
