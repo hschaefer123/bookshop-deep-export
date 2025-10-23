@@ -1,8 +1,10 @@
 sap.ui.define([
     "sap/ui/export/ExportUtils",
+    "sap/ui/unified/FileUploader",
+    "sap/ui/unified/FileUploaderParameter",
     "sap/m/MessageToast",
     "sap/m/MessageBox"
-], function (ExportUtils, MessageToast, MessageBox) {
+], function (ExportUtils, FileUploader, FileUploaderParameter, MessageToast, MessageBox) {
     "use strict";
 
     /**
@@ -158,6 +160,68 @@ sap.ui.define([
                 console.error("[StreamUtils.importData] failed:", e);
                 MessageBox.error(`Import failed: ${e.message}`);
             }
+        },
+
+        /**
+         * Upload file to CAP using FileUploader API (no UI visible).
+         * (currently not working, maybe use in dialog scenario)
+         */
+        async uploadFile({ url, entitySet, i18n, token }) {
+            // Get CSRF token (either provided or auto-derived)´                
+            const csrf = await this._getCsrfToken(url, token);
+
+            return new Promise((resolve, reject) => {
+                // Create uploader instance (invisible)
+                const uploader = new FileUploader({
+                    visible: false,
+                    name: "file",
+                    uploadUrl: url,
+                    sendXHR: true,                // use XMLHttpRequest → supports headers
+                    useMultipart: false,          // send raw body (not form-data)
+                    headerParameters: [
+                        new FileUploaderParameter({
+                            name: "x-entity-set",
+                            value: entitySet
+                        }),
+                        new FileUploaderParameter({
+                            name: "x-csrf-token",
+                            value: csrf || ""
+                        })
+                    ],
+                    change: (oEvent) => {
+                        // File selected → trigger upload
+                        uploader.upload();
+                    },
+                    uploadComplete: (oEvent) => {
+                        MessageToast.show(i18n?.getText("msgImportOk") || "Import completed");
+                        uploader.destroy(); // ✅ Cleanup after completion
+                        resolve();
+                    },
+                    uploadAborted: (oEvent) => {
+                        uploader.destroy(); // ✅ Cleanup after abort
+                        reject(new Error("Upload aborted"));
+                    },
+                    uploadProgress: (oEvent) => {
+                        console.log("Upload progress:", oEvent.getParameter("loaded"));
+                    }
+                });
+
+                // Add to page (required for rendering, can be hidden)
+                sap.ui.getCore().getUIArea("content")?.addContent(uploader);
+
+                // !!! not working
+                uploader.openFilePicker()
+
+                // Safety cleanup after timeout (failsafe)
+                /*
+                setTimeout(() => {
+                    if (!uploader.bIsDestroyed) {
+                        console.debug("[FileUploader] Auto-cleanup after timeout");
+                        uploader.destroy();
+                    }
+                }, 120000);
+                */
+            });
         }
     };
 

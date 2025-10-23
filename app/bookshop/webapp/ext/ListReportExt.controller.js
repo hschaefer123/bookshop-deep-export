@@ -74,6 +74,8 @@ sap.ui.define([
                 i18n
             });
 
+            //await StreamUtils.uploadFile({ url: "/catalog/DataMigration/import", entitySet, i18n });
+
             // refresh list binding to show new records
             this.getTableBinding(table)?.refresh?.();
         },
