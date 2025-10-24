@@ -36,7 +36,7 @@ module.exports = cds.service.impl(async function () {
         // --- JSON (default)
         if (format === 'json') {
             // Deep Read JSON
-            const deepQuery = buildDeepAdminQuery(Entity, entitySet);
+            const deepQuery = buildDeepAdminQuery(Entity);
             const q = SELECT.from(Entity, deepQuery).where({ ID: { in: selectedKeys } });
             const stream = await q.stream(); // admin texts
             return req.reply(stream, {
@@ -72,58 +72,29 @@ module.exports = cds.service.impl(async function () {
 })
 
 /**
- * Build a full deep read query for admin export (non-localized)
- * Includes all compositions recursively, and handles namespaced models.
+ * Build a full deep read query for admin export (non-localized).
+ * Recursively expands all compositions using CAP 9.x reflection.
  *
  * @param {object} entity - CDS entity definition
- * @param {string} entitySet - The top-level entity set (e.g. "Books")
  * @param {number} [depth=0] - Current recursion depth
  * @param {number} [maxDepth=5] - Maximum recursion depth
- * @returns {function} - CAP deep read builder lambda
+ * @returns {function} CAP deep read builder lambda
  */
-function buildDeepAdminQuery(entity, entitySet, depth = 0, maxDepth = 5) {
-    if (!entity || depth > maxDepth) return e => e('*');
-
-    // 🧩 Try to detect the namespace from the entity name
-    const namespace = entity?.name?.includes('.')
-        ? entity.name.split('.').slice(0, -1).join('.')
-        : null;
-
-    // derive short form of entitySet (e.g., "Books" from "sap.capire.bookshop.Books")
-    const entitySetShort = entitySet.includes('.')
-        ? entitySet.split('.').pop()
-        : entitySet;
-
+function buildDeepAdminQuery(entity, depth = 0, maxDepth = 5) {
     return e => {
-        e('*'); // Base columns
+        e('*');
 
-        // --- Recursive compositions only (clean CAP 9.x way)
+        // stop early if recursion depth exceeded
+        if (!entity || depth >= maxDepth) return;
+
+        // iterate over composition targets (clean CAP 9.x way)
         for (const [name, assoc] of Object.entries(entity.compositions || {})) {
-            let target = cds.entities[assoc.target];
-
-            // 🔹 Fallback 1: strip namespace from assoc.target
-            if (!target && assoc.target?.includes('.')) {
-                const shortName = assoc.target.split('.').pop();
-                target = cds.entities[shortName];
-            }
-
-            // 🔹 Fallback 2: try with same entitySet base name (Books.texts, etc.)
-            if (!target && entitySetShort && assoc.target?.includes(entitySetShort)) {
-                const withoutNs = assoc.target.replace(namespace + '.', '');
-                target = cds.entities[withoutNs];
-            }
-
-            // 🔹 Fallback 3: requalify using detected namespace
-            if (!target && namespace) {
-                const qualified = `${namespace}.${assoc.target.split('.').pop()}`;
-                target = cds.entities[qualified] || cds.entities[assoc.target];
-            }
-
+            const target = assoc?._target;
             if (target) {
-                e[name](buildDeepAdminQuery(target, entitySet, depth + 1, maxDepth));
+                // recursive deep expansion
+                e[name](buildDeepAdminQuery(target, depth + 1, maxDepth));
             } else {
-                console.warn(`⚠️ No target found for composition ${name} (${assoc.target})`);
-                e[name]('*');
+                console.warn(`⚠️ Missing target for composition '${name}' in entity '${entity.name}'`);
             }
         }
     };
