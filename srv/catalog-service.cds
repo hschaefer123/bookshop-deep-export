@@ -2,7 +2,8 @@ using {sap.capire.bookshop as db} from '../db/schema';
 
 service CatalogService @(path: '/catalog') {
 
-    entity Books as projection on db.Books;
+    entity Books   as projection on db.Books;
+    entity Ratings as projection on db.Ratings;
 
     // Media entity used for deep import/export
     @odata.singleton

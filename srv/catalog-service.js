@@ -35,12 +35,12 @@ module.exports = cds.service.impl(async function () {
 
         // --- JSON (default)
         if (format === 'json') {
-            // Deep JSON
-            const columns = buildDeepColumns(Entity);
-            const q = cds.ql(SELECT.from(Entity).columns(columns).where({ ID: { in: selectedKeys } }));
-            const stream = await q.localized.stream(); // localized texts
+            // Deep Read JSON
+            const deepQuery = buildDeepAdminQuery(Entity, entitySet);
+            const q = SELECT.from(Entity, deepQuery).where({ ID: { in: selectedKeys } });
+            const stream = await q.stream(); // admin texts
             return req.reply(stream, {
-                filename: `${entitySet}.json`,
+                filename: `${entitySet.split('.').pop()}.json`,
                 contentType: 'application/json; charset=utf-8'
             });
         }
@@ -71,17 +71,62 @@ module.exports = cds.service.impl(async function () {
 
 })
 
-// --- Deep (recursive) only JSON
-function buildDeepColumns(entity, depth = 0, maxDepth = 5) {
-    if (!entity || depth > maxDepth) return ['*'];
-    const cols = ['*'];
-    for (const [name, assoc] of Object.entries(entity.associations || {})) {
-        if (assoc.isComposition) {
-            const target = cds.entities[assoc.target];
-            if (target) cols.push({ [name]: buildDeepColumns(target, depth + 1, maxDepth) });
+/**
+ * Build a full deep read query for admin export (non-localized)
+ * Includes all compositions recursively, and handles namespaced models.
+ *
+ * @param {object} entity - CDS entity definition
+ * @param {string} entitySet - The top-level entity set (e.g. "Books")
+ * @param {number} [depth=0] - Current recursion depth
+ * @param {number} [maxDepth=5] - Maximum recursion depth
+ * @returns {function} - CAP deep read builder lambda
+ */
+function buildDeepAdminQuery(entity, entitySet, depth = 0, maxDepth = 5) {
+    if (!entity || depth > maxDepth) return e => e('*');
+
+    // 🧩 Try to detect the namespace from the entity name
+    const namespace = entity?.name?.includes('.')
+        ? entity.name.split('.').slice(0, -1).join('.')
+        : null;
+
+    // derive short form of entitySet (e.g., "Books" from "sap.capire.bookshop.Books")
+    const entitySetShort = entitySet.includes('.')
+        ? entitySet.split('.').pop()
+        : entitySet;
+
+    return e => {
+        e('*'); // Base columns
+
+        // --- Recursive compositions only (clean CAP 9.x way)
+        for (const [name, assoc] of Object.entries(entity.compositions || {})) {
+            let target = cds.entities[assoc.target];
+
+            // 🔹 Fallback 1: strip namespace from assoc.target
+            if (!target && assoc.target?.includes('.')) {
+                const shortName = assoc.target.split('.').pop();
+                target = cds.entities[shortName];
+            }
+
+            // 🔹 Fallback 2: try with same entitySet base name (Books.texts, etc.)
+            if (!target && entitySetShort && assoc.target?.includes(entitySetShort)) {
+                const withoutNs = assoc.target.replace(namespace + '.', '');
+                target = cds.entities[withoutNs];
+            }
+
+            // 🔹 Fallback 3: requalify using detected namespace
+            if (!target && namespace) {
+                const qualified = `${namespace}.${assoc.target.split('.').pop()}`;
+                target = cds.entities[qualified] || cds.entities[assoc.target];
+            }
+
+            if (target) {
+                e[name](buildDeepAdminQuery(target, entitySet, depth + 1, maxDepth));
+            } else {
+                console.warn(`⚠️ No target found for composition ${name} (${assoc.target})`);
+                e[name]('*');
+            }
         }
-    }
-    return cols;
+    };
 }
 
 // --- Flat (only scalar Root-Props) for CSV

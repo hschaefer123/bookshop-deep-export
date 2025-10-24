@@ -1,4 +1,5 @@
 using {
+  cuid,
   Currency,
   managed,
   sap
@@ -15,6 +16,16 @@ entity Books : managed {
       stock    : Integer;
       price    : Decimal;
       currency : Currency;
+      // 🔹 Composition: Each Book has multiple Ratings
+      ratings  : Composition of many Ratings
+                   on ratings.book = $self;
+}
+
+entity Ratings : cuid, managed {
+  rating   : Integer;
+  comment  : String;
+  reviewer : String;
+  book     : Association to Books;
 }
 
 entity Authors : managed {
